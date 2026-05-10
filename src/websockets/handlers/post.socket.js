@@ -10,14 +10,21 @@ export const registerPostHandler = (io, socket) => {
       })
 
       io.emit("post_created", post)
-    } catch (err) {}
+    } catch (err) {
+      console.error("create_post error:", err.message)
+      socket.emit("post_error", { message: err.message })
+    }
   })
 
   socket.on("post_expired", async ({ postId }) => {
-    const result = await expirePost({ postId })
+    try {
+      const result = await expirePost({ postId })
 
-    if (result.success) {
-      io.emit("post_removed", { postId })
+      if (result.success) {
+        io.emit("post_removed", { postId })
+      }
+    } catch (err) {
+      console.error("post_expired error:", err.message)
     }
   })
 }

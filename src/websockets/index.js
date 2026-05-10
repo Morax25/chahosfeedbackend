@@ -1,6 +1,7 @@
 import { redis } from "../configs/redis.js"
 import crypto from "crypto"
-import { registerPostHandler } from "./handlers/post.socket.js";
+import { registerPostHandler } from "./handlers/post.socket.js"
+import { names } from "../constants/names.js"
 
 const initializeSocket = (io) => {
   io.on("connection", async (socket) => {
@@ -10,10 +11,19 @@ const initializeSocket = (io) => {
       userId = crypto.randomUUID()
     }
 
+    let username = await redis.get(`user:${userId}:username`)
+
+    if (!username) {
+      const randomName = names[Math.floor(Math.random() * names.length)]
+      username = `${randomName.firstName} ${randomName.lastName}`
+
+      await redis.set(`user:${userId}:username`, username)
+    }
+
     const user = {
       userId,
-      username: `user_${userId.slice(0, 5)}`,
-      pfp: `https://api.dicebear.com/7.x/bottts/svg?seed=${userId}`,
+      username,
+      pfp: `https://api.dicebear.com/7.x/lorelei/svg?seed=${userId}`
     }
 
     socket.userId = userId
@@ -23,6 +33,7 @@ const initializeSocket = (io) => {
 
     socket.emit("me", user)
     registerPostHandler(io, socket)
+
     const onlineCount = await redis.scard("online:users")
     io.emit("online_users", onlineCount)
 

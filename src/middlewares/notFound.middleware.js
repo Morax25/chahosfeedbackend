@@ -5,7 +5,7 @@ const notFound = (
 ) => {
   res.status(404).json({
     success: false,
-    message: 'Invalid endpoint, Route not found.'
+    message: 'Invalid endpoint, Route does not exists.'
   })
 }
 
