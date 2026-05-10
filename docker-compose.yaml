@@ -25,7 +25,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
     ports:
-      - "3001:3001"
+      - "80:3001"
     restart: unless-stopped
 
 volumes:
