@@ -3,9 +3,7 @@ import { Server } from "socket.io";
 import app from "./src/app.js";
 import { PORT } from "./src/configs/env.js";
 import { connectRedis } from "./src/configs/redis.js";
-
 import initializeSocket from "./src/websockets/index.js";
-
 const startServer = async () => {
   try {
     await connectRedis();
