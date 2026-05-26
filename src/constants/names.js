@@ -25,6 +25,7 @@ export const names = [
   { firstName: "Sal", lastName: "Monella" },
   { firstName: "Doug", lastName: "Hole" },
   { firstName: "Stan", lastName: "Still" },
+  {firstName: "Lallu", lastName: "aand"},
   { firstName: "Bea", lastName: "O'Problem" },
   { firstName: "Gail", lastName: "Forcewind" },
   { firstName: "Hugh", lastName: "Jass" },
