@@ -33,12 +33,12 @@ export const registerRoomHandler = (io, socket) => {
         userId,
         username,
         pfp,
-        timestamp: new Date(timestamp),
+        timestamp: new Date(timestamp).toISOString(),
       };
 
-      // Save to Redis (keep last 100 messages)
-      await redis.lpush(`room:${roomId}:messages`, JSON.stringify(message));
-      await redis.ltrim(`room:${roomId}:messages`, 0, 99);
+      // Save to Redis (keep last 100 messages) - rpush appends so oldest→newest order is preserved
+      await redis.rpush(`room:${roomId}:messages`, JSON.stringify(message));
+      await redis.ltrim(`room:${roomId}:messages`, -100, -1);
 
       // Broadcast to all users in room
       io.to(roomId).emit("receive-message", message);
