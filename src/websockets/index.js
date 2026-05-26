@@ -1,7 +1,8 @@
-import { redis } from "../configs/redis.js"
 import crypto from "crypto"
 import { registerPostHandler } from "./handlers/post.socket.js"
 import { names } from "../constants/names.js"
+import { registerRoomHandler } from "./handlers/roomHandler.js"
+import { redis } from "../configs/redis.js"
 
 const getRandomUsername = () => {
   const randomName = names[Math.floor(Math.random() * names.length)]
@@ -45,7 +46,7 @@ const initializeSocket = (io) => {
       await redis.sadd("online:users", userId)
 
       registerPostHandler(io, socket)
-
+      registerRoomHandler(io, socket)
       const onlineCount = await redis.scard("online:users")
       io.emit("online_users", onlineCount)
 

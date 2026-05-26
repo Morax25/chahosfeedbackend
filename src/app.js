@@ -6,6 +6,7 @@ import healthRoute from "./routes/health.route.js";
 import { notFound } from "./middlewares/notFound.middleware.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
 import feedRouter from './routes/feed.route.js'
+import chatroomRouter from './routes/chatroom.route.js'
 const app = express();
 app.use(
   pinoHttp({
@@ -28,7 +29,8 @@ app.use(
   }),
 );
 app.use("/api/health", healthRoute);
-app.use("/api/feed", feedRouter) 
+app.use("/api/feed", feedRouter)
+app.use("/api/chatroom", chatroomRouter);
 app.use(notFound);
 app.use(errorHandler);
 
