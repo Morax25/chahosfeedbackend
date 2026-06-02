@@ -17,26 +17,10 @@ export const consume = async (
     if (!msg) return;
 
     try {
-      // 1. Raw message log (buffer level)
-      console.log("📩 Raw message received:", msg.content);
-
-      // 2. Convert buffer -> string
       const raw = msg.content.toString();
-      console.log("📦 Message string:", raw);
-
-      // 3. Parsed JSON (this is what your app uses)
       const data = JSON.parse(raw);
-      console.log("🧠 Parsed message:", data);
-
-      // 4. Before processing
-      console.log("⚙️ Processing message for queue:", queueName);
-
       await callback(data);
-
-      // 5. Ack after successful processing
       channel.ack(msg);
-      console.log("✅ Message acknowledged");
-
     } catch (error) {
       console.error("❌ Consumer error:", error);
 
@@ -44,6 +28,4 @@ export const consume = async (
       console.log("🚫 Message rejected (not requeued)");
     }
   });
-
-  console.log(`👂 Listening on queue: ${queueName}`);
 };

@@ -14,7 +14,7 @@ const startServer = async () => {
     await connectRabbitMQ();
     await setupRabbitMQ();
     await consume("moderation_queue", async (data) => {
-     
+      console.log("Reported Post.", data)
   });
     const server = http.createServer(app);
     const io = new Server(server, {
