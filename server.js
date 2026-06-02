@@ -7,6 +7,7 @@ import initializeSocket from "./src/websockets/index.js";
 import { connectRabbitMQ } from "./src/rabbitmq/connection.js";
 import { setupRabbitMQ } from "./src/rabbitmq/setup.js";
 import { consume } from "./src/rabbitmq/consumer.js";
+import { deletePostFromRedis } from "./src/websockets/services/post.service.js";
 
 const startServer = async () => {
   try {
@@ -14,8 +15,15 @@ const startServer = async () => {
     await connectRabbitMQ();
     await setupRabbitMQ();
     await consume("moderation_queue", async (data) => {
-      console.log("Reported Post.", data)
-  });
+      console.log("Reported Post.", data);
+
+      const { postId, action } = data;
+      if (action === "auto_remove") {
+        io.emit("post_removed", postId)
+        await deletePostFromRedis(postId);
+        console.log("Post deleted successfully")
+      }
+    });
     const server = http.createServer(app);
     const io = new Server(server, {
       cors: {

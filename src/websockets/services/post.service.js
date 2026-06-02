@@ -32,3 +32,21 @@ export const createPost = async ({ userId, content }) => {
 
   return post
 }
+
+export const deletePostFromRedis = async (postId) => {
+  const postKey = `post:${postId}`
+
+  // 1. Get post (needed for cleanup reference if required later)
+  const postRaw = await redis.get(postKey)
+  if (!postRaw) return null
+
+  const post = JSON.parse(postRaw)
+
+  // 2. Remove post data
+  await redis.del(postKey)
+
+  // 3. Remove from feed index
+  await redis.zrem("feed_global", postId)
+
+  return post
+}
