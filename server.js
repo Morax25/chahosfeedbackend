@@ -2,7 +2,7 @@ import http from "http";
 import { Server } from "socket.io";
 import app from "./src/app.js";
 import { PORT } from "./src/configs/env.js";
-import { connectRedis } from "./src/configs/redis.js";
+import { connectRedis, redis } from "./src/configs/redis.js";
 import initializeSocket from "./src/websockets/index.js";
 import { connectRabbitMQ } from "./src/rabbitmq/connection.js";
 import { setupRabbitMQ } from "./src/rabbitmq/setup.js";
@@ -14,16 +14,6 @@ const startServer = async () => {
     await connectRedis();
     await connectRabbitMQ();
     await setupRabbitMQ();
-    await consume("moderation_queue", async (data) => {
-      console.log("Reported Post.", data);
-
-      const { postId, action } = data;
-      if (action === "auto_remove") {
-        io.emit("post_removed", postId)
-        await deletePostFromRedis(postId);
-        console.log("Post deleted successfully")
-      }
-    });
     const server = http.createServer(app);
     const io = new Server(server, {
       cors: {
@@ -31,6 +21,47 @@ const startServer = async () => {
         credentials: true,
       },
     });
+
+    await consume("moderation_queue", async (data) => {
+      console.log("Reported Post.", data);
+      const { postId, action, reporter, category, reasoning } = data;
+
+      if (action === "auto_remove") {
+        // Fetch author BEFORE deleting
+        const authorId = await redis.get(`post:${postId}:author`);
+
+        // Broadcast feed update to everyone
+        io.emit("post_removed", { postId });
+
+        // Targeted notification to reporter
+        if (reporter) {
+          const reporterSockets = await redis.smembers(`user:${reporter}:sockets`);
+          reporterSockets.forEach((socketId) => {
+            io.to(socketId).emit("moderation_notification", {
+              variant: "report_resolved",
+              category,
+              reasoning,
+            });
+          });
+        }
+
+        // Targeted notification to author
+        if (authorId) {
+          const authorSockets = await redis.smembers(`user:${authorId}:sockets`);
+          authorSockets.forEach((socketId) => {
+            io.to(socketId).emit("moderation_notification", {
+              variant: "post_removed",
+              category,
+              reasoning,
+            });
+          });
+        }
+
+        await deletePostFromRedis(postId);
+        console.log("Post deleted successfully");
+      }
+    });
+
     initializeSocket(io);
     server.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
@@ -40,4 +71,5 @@ const startServer = async () => {
     process.exit(1);
   }
 };
+
 startServer();
