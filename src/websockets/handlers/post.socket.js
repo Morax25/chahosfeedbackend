@@ -27,24 +27,20 @@ export const registerPostHandler = (io, socket) => {
     }
   })
 
-  socket.on("add_comment", async ({ postId, text }) => {
-    try {
-      const { comment, commentCount } = await createComment({
-        postId,
-        userId: socket.userId,
-        text
-      })
-
-      // Emit new comment to everyone on that post
-      io.emit("comment_added", comment)
-
-      // Update comment count on feed for everyone
-      io.emit("post_updated", { postId, comments: commentCount })
-    } catch (err) {
-      console.error("add_comment error:", err.message)
-      socket.emit("post_error", { message: err.message })
-    }
-  })
+socket.on("add_comment", async ({ postId, text }) => {
+  try {
+    const { comment, commentCount, expiresAt } = await createComment({
+      postId,
+      userId: socket.userId,
+      text
+    })
+    io.emit("comment_added", comment)
+    io.emit("post_updated", { postId, comments: commentCount, expiresAt })
+  } catch (err) {
+    console.error("add_comment error:", err.message)
+    socket.emit("post_error", { message: err.message })
+  }
+})
 
   socket.on("get_comments", async ({ postId }) => {
     try {
@@ -55,14 +51,14 @@ export const registerPostHandler = (io, socket) => {
     }
   })
 
-  socket.on("post_expired", async ({ postId }) => {
-    try {
-      const result = await expirePost({ postId })
-      if (result.success) {
-        io.emit("post_removed", { postId })
-      }
-    } catch (err) {
-      console.error("post_expired error:", err.message)
+socket.on("post_expired", async ({ postId }) => {
+  try {
+    const result = await expirePost({ postId })
+    if (result.success) {
+      io.emit("post_removed", { postId, stats: result.stats })
     }
-  })
+  } catch (err) {
+    console.error("post_expired error:", err.message)
+  }
+})
 }

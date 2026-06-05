@@ -23,7 +23,7 @@ export const createPost = async ({ userId, content }) => {
     comments: 0,
     likes: 0,
     createdAt: Date.now(),
-    expiresAt: Date.now() + 30000,
+    expiresAt: Date.now() + 90000,
     user,
   }
 
