@@ -1,5 +1,7 @@
 import { redis } from "../../configs/redis.js";
 
+const emptyRoomTimers = new Map();
+
 export const registerRoomHandler = (io, socket) => {
   socket.on("join-room", async ({ roomId }) => {
     try {
@@ -9,6 +11,12 @@ export const registerRoomHandler = (io, socket) => {
       }
 
       socket.join(roomId);
+
+      if (emptyRoomTimers.has(roomId)) {
+        clearTimeout(emptyRoomTimers.get(roomId));
+        emptyRoomTimers.delete(roomId);
+      }
+
       const clients = io.sockets.adapter.rooms.get(roomId);
       const userCount = clients ? clients.size : 1;
 
@@ -36,11 +44,9 @@ export const registerRoomHandler = (io, socket) => {
         timestamp: new Date(timestamp).toISOString(),
       };
 
-      // Save to Redis (keep last 100 messages) - rpush appends so oldest→newest order is preserved
       await redis.rpush(`room:${roomId}:messages`, JSON.stringify(message));
       await redis.ltrim(`room:${roomId}:messages`, -100, -1);
 
-      // Broadcast to all users in room
       io.to(roomId).emit("receive-message", message);
       console.log(`Message in ${roomId} from ${username}:`, text);
     } catch (error) {
@@ -52,9 +58,28 @@ export const registerRoomHandler = (io, socket) => {
   socket.on("leave-room", async ({ roomId }) => {
     try {
       socket.leave(roomId);
+
       const clients = io.sockets.adapter.rooms.get(roomId);
       const userCount = clients ? clients.size : 0;
-      io.to(roomId).emit("user-count", userCount);
+
+      if (userCount === 0) {
+        const timer = setTimeout(async () => {
+          const current = io.sockets.adapter.rooms.get(roomId)?.size ?? 0;
+          if (current === 0) {
+            await Promise.all([
+              redis.hdel("chatrooms", roomId),
+              redis.del(`room:${roomId}:messages`),
+            ]);
+            io.emit("room_deleted", { roomId });
+            emptyRoomTimers.delete(roomId);
+          }
+        }, 20_000);
+
+        emptyRoomTimers.set(roomId, timer);
+      } else {
+        io.to(roomId).emit("user-count", userCount);
+      }
+
       console.log(`User ${socket.userId} left room ${roomId}`);
     } catch (error) {
       console.error("Error leaving room:", error);
