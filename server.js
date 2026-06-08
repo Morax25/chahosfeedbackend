@@ -22,20 +22,21 @@ const startServer = async () => {
       },
     });
 
+    app.set("io", io);
+
     await consume("moderation_queue", async (data) => {
       console.log("Reported Post.", data);
       const { postId, action, reporter, category, reasoning } = data;
 
       if (action === "auto_remove") {
-        // Fetch author BEFORE deleting
         const authorId = await redis.get(`post:${postId}:author`);
 
-        // Broadcast feed update to everyone
         io.emit("post_removed", { postId });
 
-        // Targeted notification to reporter
         if (reporter) {
-          const reporterSockets = await redis.smembers(`user:${reporter}:sockets`);
+          const reporterSockets = await redis.smembers(
+            `user:${reporter}:sockets`,
+          );
           reporterSockets.forEach((socketId) => {
             io.to(socketId).emit("moderation_notification", {
               variant: "report_resolved",
@@ -45,9 +46,10 @@ const startServer = async () => {
           });
         }
 
-        // Targeted notification to author
         if (authorId) {
-          const authorSockets = await redis.smembers(`user:${authorId}:sockets`);
+          const authorSockets = await redis.smembers(
+            `user:${authorId}:sockets`,
+          );
           authorSockets.forEach((socketId) => {
             io.to(socketId).emit("moderation_notification", {
               variant: "post_removed",
@@ -59,6 +61,18 @@ const startServer = async () => {
 
         await deletePostFromRedis(postId);
         console.log("Post deleted successfully");
+      }
+
+      if (action === "human_review") {
+        await redis.set(
+          `moderation:human_review:${postId}`,
+          JSON.stringify(data),
+          "EX",
+          300,
+        );
+        console.log(
+          `Post ${postId} flagged for human review, expires in 5 minutes`,
+        );
       }
     });
 
