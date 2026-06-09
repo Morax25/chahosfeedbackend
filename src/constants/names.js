@@ -228,7 +228,6 @@ export const names = [
   { firstName: "Kanu", lastName: "Khopdi" },
   { firstName: "Ramu", lastName: "Rangbaaz" },
   { firstName: "Bittu", lastName: "Bhatakti" },
-  { firstName: "Motu", lastName: "Mischief" },
   { firstName: "Lambu", lastName: "Locha" },
   { firstName: "Chikoo", lastName: "Chatori" },
   { firstName: "Tikku", lastName: "Teda" },
